@@ -133,6 +133,8 @@ dependencies {
     //noinspection GradleDynamicVersion
   implementation "com.facebook.react:react-native:+"
   implementation "org.jetbrains.kotlin:kotlin-stdlib:$kotlin_version"
+
+  implementation "com.spotify.android:auth:2.0.2"
 // From node_modules
 }
 
