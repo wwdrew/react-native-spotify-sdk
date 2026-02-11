@@ -32,6 +32,10 @@
     "!**/.*"
   ],
   "scripts": {
+    "plugin:build": "expo-module build",
+    "plugin:clean": "expo-module clean",
+    "plugin:lint": "expo-module lint",
+    "plugin:test": "expo-module test",
     "example": "yarn workspace @wwdrew/react-native-spotify-sdk-example",
     "clean": "del-cli lib",
     "prepare": "bob build",
@@ -156,5 +160,8 @@
       "release-it"
     ],
     "version": "0.57.1"
+  },
+  "dependencies": {
+    "expo-module-scripts": "^5.0.8"
   }
 }
