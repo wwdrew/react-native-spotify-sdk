@@ -1,7 +1,7 @@
 {
   "name": "@wwdrew/react-native-spotify-sdk",
   "version": "0.1.0",
-  "description": "React Native wrapper for iOS and Android Spotify SDKs",
+  "description": "React Native wrapper for iOS and Android Spotify SDKs (Expo compatible)",
   "main": "./lib/module/index.js",
   "types": "./lib/typescript/src/index.d.ts",
   "exports": {
