@@ -60,10 +60,13 @@ export interface Spec extends TurboModule {
     tokenSwapURL: string | null,
     tokenRefreshURL: string | null
   ): Promise<SpotifySession>;
-  connect(options: ConnectOptions): Promise<void>;
+  connect(
+    accessToken: string,
+    initialContextUri: string | null
+  ): Promise<void>;
   disconnect(): Promise<void>;
   isConnected(): Promise<boolean>;
-  play(options: PlayOptions): Promise<void>;
+  play(uri: string, index: number, positionMs: number): Promise<void>;
   pause(): Promise<void>;
   resume(): Promise<void>;
   skipNext(): Promise<void>;

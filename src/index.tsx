@@ -32,7 +32,10 @@ export async function authenticateAsync(
 }
 
 export function connect(options: ConnectOptions): Promise<void> {
-  return ReactNativeSpotifySdk.connect(options);
+  return ReactNativeSpotifySdk.connect(
+    options.accessToken,
+    options.initialContextUri ?? null
+  );
 }
 
 export function disconnect(): Promise<void> {
@@ -44,7 +47,11 @@ export function isConnected(): Promise<boolean> {
 }
 
 export function play(options: PlayOptions): Promise<void> {
-  return ReactNativeSpotifySdk.play(options);
+  return ReactNativeSpotifySdk.play(
+    options.uri,
+    options.index ?? -1,
+    options.positionMs ?? -1
+  );
 }
 
 export function pause(): Promise<void> {

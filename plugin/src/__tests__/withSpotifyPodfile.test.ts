@@ -1,7 +1,7 @@
 import { transformSpotifyPodfile } from '../ios/withSpotifyPodfile';
 
 describe('transformSpotifyPodfile', () => {
-  it('injects require and install block in Expo-style Podfile', () => {
+  it('injects Spotify pod block in Expo-style Podfile', () => {
     const input = `require 'json'
 platform :ios, '15.1'
 prepare_react_native_project!
@@ -13,14 +13,9 @@ end
 
     const output = transformSpotifyPodfile(input);
 
-    expect(output).toContain(
-      '# @wwdrew/react-native-spotify-sdk require begin'
-    );
-    expect(output).toContain(
-      '# @wwdrew/react-native-spotify-sdk install begin'
-    );
-    expect(output).toContain('install_spotify_sdk_pods!');
-    expect(output.indexOf('install_spotify_sdk_pods!')).toBeLessThan(
+    expect(output).toContain('# @wwdrew/react-native-spotify-sdk begin');
+    expect(output).toContain("pod 'SpotifyiOS', :podspec =>");
+    expect(output.indexOf("pod 'SpotifyiOS', :podspec =>")).toBeLessThan(
       output.indexOf('use_expo_modules!')
     );
   });
@@ -41,7 +36,7 @@ end
     expect(twice).toEqual(once);
   });
 
-  it('does not add install call when manual Spotify pod exists', () => {
+  it('does not add managed block when manual Spotify pod exists', () => {
     const input = `require 'json'
 platform :ios, '15.1'
 
@@ -52,11 +47,7 @@ end
 `;
 
     const output = transformSpotifyPodfile(input);
-    const installMatches = output.match(/install_spotify_sdk_pods!/g) ?? [];
-
-    expect(installMatches).toHaveLength(0);
-    expect(output).toContain(
-      '# @wwdrew/react-native-spotify-sdk require begin'
-    );
+    expect(output).not.toContain('# @wwdrew/react-native-spotify-sdk begin');
+    expect(output).not.toContain("pod 'SpotifyiOS', :podspec =>");
   });
 });

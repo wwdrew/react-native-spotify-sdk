@@ -70,24 +70,24 @@ static void SwizzleAppDelegateOpenURL(void) {
 
 static NSDictionary<NSString *, NSNumber *> *SpotifyScopeMap(void) {
   return @{
-    @"playlist-read-private": @(SPTScopePlaylistReadPrivate),
-    @"playlist-read-collaborative": @(SPTScopePlaylistReadCollaborative),
-    @"playlist-modify-public": @(SPTScopePlaylistModifyPublic),
-    @"playlist-modify-private": @(SPTScopePlaylistModifyPrivate),
-    @"user-follow-read": @(SPTScopeUserFollowRead),
-    @"user-follow-modify": @(SPTScopeUserFollowModify),
-    @"user-library-read": @(SPTScopeUserLibraryRead),
-    @"user-library-modify": @(SPTScopeUserLibraryModify),
-    @"user-read-email": @(SPTScopeUserReadEmail),
-    @"user-read-private": @(SPTScopeUserReadPrivate),
-    @"user-top-read": @(SPTScopeUserTopRead),
-    @"ugc-image-upload": @(SPTScopeUGCImageUpload),
-    @"streaming": @(SPTScopeStreaming),
-    @"app-remote-control": @(SPTScopeAppRemoteControl),
-    @"user-read-playback-state": @(SPTScopeUserReadPlaybackState),
-    @"user-modify-playback-state": @(SPTScopeUserModifyPlaybackState),
-    @"user-read-currently-playing": @(SPTScopeUserReadCurrentlyPlaying),
-    @"user-read-recently-played": @(SPTScopeUserReadRecentlyPlayed),
+    @"playlist-read-private": @(SPTPlaylistReadPrivateScope),
+    @"playlist-read-collaborative": @(SPTPlaylistReadCollaborativeScope),
+    @"playlist-modify-public": @(SPTPlaylistModifyPublicScope),
+    @"playlist-modify-private": @(SPTPlaylistModifyPrivateScope),
+    @"user-follow-read": @(SPTUserFollowReadScope),
+    @"user-follow-modify": @(SPTUserFollowModifyScope),
+    @"user-library-read": @(SPTUserLibraryReadScope),
+    @"user-library-modify": @(SPTUserLibraryModifyScope),
+    @"user-read-email": @(SPTUserReadEmailScope),
+    @"user-read-private": @(SPTUserReadPrivateScope),
+    @"user-top-read": @(SPTUserTopReadScope),
+    @"ugc-image-upload": @(SPTUGCImageUploadScope),
+    @"streaming": @(SPTStreamingScope),
+    @"app-remote-control": @(SPTAppRemoteControlScope),
+    @"user-read-playback-state": @(SPTUserReadPlaybackStateScope),
+    @"user-modify-playback-state": @(SPTUserModifyPlaybackStateScope),
+    @"user-read-currently-playing": @(SPTUserReadCurrentlyPlayingScope),
+    @"user-read-recently-played": @(SPTUserReadRecentlyPlayedScope),
   };
 }
 
@@ -150,8 +150,8 @@ static NSArray<NSString *> *SerializeSpotifyScopes(SPTScope scopes) {
   return installed;
 }
 
-- (BOOL)isSpotifyAppInstalled {
-  return [self isAvailable];
+- (NSNumber *)isSpotifyAppInstalled {
+  return @([self isAvailable]);
 }
 
 - (void)authenticate:(NSArray<NSString *> *)scopes
@@ -203,11 +203,11 @@ static NSArray<NSString *> *SerializeSpotifyScopes(SPTScope scopes) {
   });
 }
 
-- (void)connect:(NSDictionary *)options
+- (void)connect:(NSString *)accessToken
+initialContextUri:(NSString * _Nullable)initialContextUri
         resolve:(RCTPromiseResolveBlock)resolve
          reject:(RCTPromiseRejectBlock)reject
 {
-  NSString *accessToken = options[@"accessToken"];
   if (accessToken.length == 0) {
     reject(@"ERR_REACT_NATIVE_SPOTIFY_SDK", @"connect requires accessToken", nil);
     return;
@@ -231,7 +231,7 @@ static NSArray<NSString *> *SerializeSpotifyScopes(SPTScope scopes) {
   self.appRemote.connectionParameters.accessToken = accessToken;
   self.pendingConnectResolve = resolve;
   self.pendingConnectReject = reject;
-  self.pendingInitialContextUri = options[@"initialContextUri"];
+  self.pendingInitialContextUri = initialContextUri;
 
   dispatch_async(dispatch_get_main_queue(), ^{
     [self.appRemote connect];
@@ -251,8 +251,12 @@ static NSArray<NSString *> *SerializeSpotifyScopes(SPTScope scopes) {
   resolve(@(self.appRemote != nil && self.appRemote.isConnected));
 }
 
-- (void)play:(NSDictionary *)options resolve:(RCTPromiseResolveBlock)resolve reject:(RCTPromiseRejectBlock)reject {
-  NSString *uri = options[@"uri"];
+- (void)play:(NSString *)uri
+       index:(NSNumber *)index
+  positionMs:(NSNumber *)positionMs
+     resolve:(RCTPromiseResolveBlock)resolve
+      reject:(RCTPromiseRejectBlock)reject
+{
   if (uri.length == 0) {
     reject(@"ERR_REACT_NATIVE_SPOTIFY_SDK", @"play requires uri", nil);
     return;
@@ -262,15 +266,15 @@ static NSArray<NSString *> *SerializeSpotifyScopes(SPTScope scopes) {
     return;
   }
 
+  (void)index;
   [self.appRemote.playerAPI play:uri callback:^(id  _Nullable result, NSError * _Nullable error) {
     if (error != nil) {
       reject(@"ERR_REACT_NATIVE_SPOTIFY_SDK", error.localizedDescription, error);
       return;
     }
 
-    NSNumber *position = options[@"positionMs"];
-    if (position != nil) {
-      [self.appRemote.playerAPI seekToPosition:position.integerValue callback:^(id  _Nullable seekResult, NSError * _Nullable seekError) {
+    if (positionMs.integerValue >= 0) {
+      [self.appRemote.playerAPI seekToPosition:positionMs.integerValue callback:^(id  _Nullable seekResult, NSError * _Nullable seekError) {
         if (seekError != nil) {
           reject(@"ERR_REACT_NATIVE_SPOTIFY_SDK", seekError.localizedDescription, seekError);
         } else {
@@ -402,7 +406,7 @@ static NSArray<NSString *> *SerializeSpotifyScopes(SPTScope scopes) {
       return;
     }
 
-    SPTAppRemotePlayerState *state = (SPTAppRemotePlayerState *)result;
+    id<SPTAppRemotePlayerState> state = (id<SPTAppRemotePlayerState>)result;
     NSDictionary *serialized = @{
       @"trackUri": state.track.URI ?: [NSNull null],
       @"trackName": state.track.name ?: [NSNull null],

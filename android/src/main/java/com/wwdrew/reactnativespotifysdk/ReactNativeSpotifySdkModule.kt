@@ -24,7 +24,6 @@ import okhttp3.Request
 import okhttp3.Response
 import org.json.JSONObject
 import java.io.IOException
-import com.facebook.react.bridge.ReadableMap
 
 class ReactNativeSpotifySdkModule(reactContext: ReactApplicationContext) :
   NativeReactNativeSpotifySdkSpec(reactContext) {
@@ -236,10 +235,9 @@ class ReactNativeSpotifySdkModule(reactContext: ReactApplicationContext) :
     )
   }
 
-  override fun connect(options: ReadableMap, promise: Promise) {
+  override fun connect(accessToken: String, initialContextUri: String?, promise: Promise) {
     val metadata = readSpotifyMetadata(promise) ?: return
-    val accessToken = options.getString("accessToken")
-    if (accessToken.isNullOrBlank()) {
+    if (accessToken.isBlank()) {
       promise.reject("ERR_REACT_NATIVE_SPOTIFY_SDK", "connect requires accessToken")
       return
     }
@@ -268,7 +266,6 @@ class ReactNativeSpotifySdkModule(reactContext: ReactApplicationContext) :
       object : Connector.ConnectionListener {
         override fun onConnected(spotifyAppRemote: SpotifyAppRemote) {
           appRemote = spotifyAppRemote
-          val initialContextUri = options.getString("initialContextUri")
           if (!initialContextUri.isNullOrBlank()) {
             spotifyAppRemote.playerApi.play(initialContextUri)
           }
@@ -299,27 +296,30 @@ class ReactNativeSpotifySdkModule(reactContext: ReactApplicationContext) :
     promise.resolve(appRemote?.isConnected == true)
   }
 
-  override fun play(options: ReadableMap, promise: Promise) {
+  override fun play(uri: String, index: Double, positionMs: Double, promise: Promise) {
     withPlayerApi(promise) { remote ->
-      val uri = options.getString("uri")
-      if (uri.isNullOrBlank()) {
+      if (uri.isBlank()) {
         promise.reject("ERR_REACT_NATIVE_SPOTIFY_SDK", "play requires uri")
         return@withPlayerApi
       }
+      // Spotify App Remote API does not expose an index-based play call.
+      val normalizedIndex = index.toInt()
 
       remote.playerApi
         .play(uri)
         .setResultCallback {
-          val positionMs =
-            if (options.hasKey("positionMs")) options.getDouble("positionMs").toLong() else 0L
-          if (positionMs > 0L) {
+          val normalizedPositionMs = positionMs.toLong()
+          if (normalizedPositionMs >= 0L) {
             remote.playerApi
-              .seekTo(positionMs)
+              .seekTo(normalizedPositionMs)
               .setResultCallback { promise.resolve(null) }
               .setErrorCallback { error ->
                 promise.reject("ERR_REACT_NATIVE_SPOTIFY_SDK", error.message, error)
               }
           } else {
+            if (normalizedIndex >= 0) {
+              // Keep parity with JS API without failing unsupported index input.
+            }
             promise.resolve(null)
           }
         }
