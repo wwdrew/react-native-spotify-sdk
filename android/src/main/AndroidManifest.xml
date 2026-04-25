@@ -3,6 +3,6 @@
     <meta-data android:name="spotifyClientId" android:value="${spotifyClientId}" />
     <meta-data
       android:name="spotifyRedirectUri"
-      android:value="${spotifyRedirectUri}" />
+      android:value="${redirectSchemeName}://${redirectHostName}${redirectPathPattern}" />
   </application>
 </manifest>

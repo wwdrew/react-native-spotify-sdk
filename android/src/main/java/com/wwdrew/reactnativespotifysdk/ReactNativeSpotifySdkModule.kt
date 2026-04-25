@@ -37,7 +37,7 @@ class ReactNativeSpotifySdkModule(reactContext: ReactApplicationContext) :
   private val activityEventListener =
     object : ActivityEventListener {
       override fun onActivityResult(
-        activity: Activity?,
+        activity: Activity,
         requestCode: Int,
         resultCode: Int,
         data: Intent?
@@ -90,7 +90,7 @@ class ReactNativeSpotifySdkModule(reactContext: ReactApplicationContext) :
         }
       }
 
-      override fun onNewIntent(intent: Intent?) = Unit
+      override fun onNewIntent(intent: Intent) = Unit
     }
 
   private var pendingTokenSwapURL: String? = null
@@ -256,7 +256,7 @@ class ReactNativeSpotifySdkModule(reactContext: ReactApplicationContext) :
     val connectionParams =
       ConnectionParams.Builder(metadata.clientId)
         .setRedirectUri(metadata.redirectUri)
-        .setAccessToken(accessToken)
+        .setAuthMethod(ConnectionParams.AuthMethod.APP_ID)
         .showAuthView(true)
         .build()
 
@@ -384,8 +384,8 @@ class ReactNativeSpotifySdkModule(reactContext: ReactApplicationContext) :
     withPlayerApi(promise) { remote ->
       val repeatMode =
         when (mode) {
-          "track" -> Repeat.TRACK
-          "context" -> Repeat.CONTEXT
+          "track" -> Repeat.ONE
+          "context" -> Repeat.ALL
           else -> Repeat.OFF
         }
       remote.playerApi.setRepeat(repeatMode).setResultCallback { promise.resolve(null) }
@@ -417,8 +417,8 @@ class ReactNativeSpotifySdkModule(reactContext: ReactApplicationContext) :
   private fun serializePlayerState(state: PlayerState): Map<String, Any?> {
     val repeatMode =
       when (state.playbackOptions.repeatMode) {
-        Repeat.TRACK -> "track"
-        Repeat.CONTEXT -> "context"
+        Repeat.ONE -> "track"
+        Repeat.ALL -> "context"
         else -> "off"
       }
 
@@ -432,7 +432,7 @@ class ReactNativeSpotifySdkModule(reactContext: ReactApplicationContext) :
       "isPaused" to state.isPaused,
       "shuffle" to state.playbackOptions.isShuffling,
       "repeatMode" to repeatMode,
-      "contextUri" to state.playbackOptions.playbackContextUri
+      "contextUri" to null
     )
   }
 

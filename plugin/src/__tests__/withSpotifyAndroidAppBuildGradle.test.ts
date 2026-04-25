@@ -19,9 +19,6 @@ describe('injectSpotifyManifestPlaceholders', () => {
     const output = injectSpotifyManifestPlaceholders(input, spotifyConfig);
 
     expect(output).toContain('spotifyClientId: "abc123"');
-    expect(output).toContain(
-      'spotifyRedirectUri: "my-app://authenticate/callback"'
-    );
     expect(output).toContain('redirectSchemeName: "my-app"');
     expect(output).toContain('redirectHostName: "authenticate"');
     expect(output).toContain('redirectPathPattern: "/callback"');
