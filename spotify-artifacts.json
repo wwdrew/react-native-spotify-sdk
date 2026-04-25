@@ -1,0 +1,10 @@
+{
+  "android": {
+    "appRemoteAar": {
+      "version": "0.8.0",
+      "url": "https://github.com/spotify/android-sdk/raw/master/app-remote-lib/spotify-app-remote-release-0.8.0.aar",
+      "sha256": "b5a6dd880eaf01f63a871cba9ef7af77c341f8a94ffc8fdf2e9021f9a9d4c198",
+      "outputPath": ".spotify-sdk-cache/android/spotify-app-remote-release-0.8.0.aar"
+    }
+  }
+}

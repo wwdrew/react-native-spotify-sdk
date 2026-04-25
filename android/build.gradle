@@ -62,7 +62,26 @@ android {
   }
 }
 
+def spotifyArtifactsResolver = file("../scripts/resolve-spotify-artifacts.js")
+def spotifyAppRemoteAar = file("../.spotify-sdk-cache/android/spotify-app-remote-release-0.8.0.aar")
+
+tasks.register("resolveSpotifyArtifacts", Exec) {
+  if (!spotifyArtifactsResolver.exists()) {
+    throw new GradleException("Spotify artifact resolver not found at ${spotifyArtifactsResolver}")
+  }
+
+  commandLine "node", spotifyArtifactsResolver.absolutePath
+  workingDir file("..")
+}
+
+preBuild.dependsOn("resolveSpotifyArtifacts")
+
 dependencies {
   implementation "com.facebook.react:react-android"
+
+  // Spotify Auth from Maven
   implementation "com.spotify.android:auth:3.0.0"
+
+  // Spotify App Remote from resolved local artifact cache
+  implementation(files(spotifyAppRemoteAar))
 }

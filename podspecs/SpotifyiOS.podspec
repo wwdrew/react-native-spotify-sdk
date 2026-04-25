@@ -8,23 +8,18 @@ Pod::Spec.new do |s|
     getting metadata for the currently playing track and context, as well as issuing 
     playback commands.
   DESC
-  
+
   s.homepage         = 'https://github.com/spotify/ios-sdk'
   s.license          = { :type => 'Proprietary', :file => 'Licenses/license.txt' }
   s.author           = { 'Spotify' => 'https://github.com/spotify' }
-  
+
   s.source           = { 
     :git => 'https://github.com/spotify/ios-sdk.git', 
     :tag => "v#{s.version}" 
   }
-  
+
   s.platform         = :ios, '12.0'
   s.swift_version    = '5.0'
-  
+
   s.vendored_frameworks = 'SpotifyiOS.xcframework'
-  
-  s.preserve_paths   = 'SpotifyiOS.xcframework'
-  
-  # The xcframework handles all architectures (arm64 for devices, arm64/x86_64 for simulators)
-  # No need to specify pod_target_xcconfig for architecture slicing
 end

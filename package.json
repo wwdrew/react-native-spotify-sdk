@@ -13,8 +13,13 @@
     "./package.json": "./package.json"
   },
   "files": [
+    "app.plugin.js",
     "src",
     "lib",
+    "plugin",
+    "podspecs",
+    "scripts",
+    "spotify-artifacts.json",
     "android",
     "ios",
     "*.podspec",
@@ -31,10 +36,12 @@
     "!**/.*"
   ],
   "scripts": {
-    "plugin:build": "expo-module build",
-    "plugin:clean": "expo-module clean",
+    "spotify:artifacts:resolve": "node ./scripts/resolve-spotify-artifacts.js",
+    "spotify:artifacts:clean": "del-cli .spotify-sdk-cache",
+    "plugin:build": "expo-module tsc -p plugin/tsconfig.json",
+    "plugin:clean": "del-cli plugin/build",
     "plugin:lint": "expo-module lint",
-    "plugin:test": "expo-module test",
+    "plugin:test": "expo-module jest --config plugin/jest.config.js --watchman=false",
     "example": "yarn workspace @wwdrew/react-native-spotify-sdk-example",
     "clean": "del-cli lib",
     "prepare": "bob build",
