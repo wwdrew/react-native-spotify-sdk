@@ -30,6 +30,7 @@ export function injectSpotifyManifestPlaceholders(
   const injection = `
         manifestPlaceholders += [
             spotifyClientId: "${clientID}",
+            spotifyRedirectUri: "${scheme}://${host}${redirectPath ? redirectPath : ''}",
             redirectSchemeName: "${scheme}",
             redirectHostName: "${host}",
             redirectPathPattern: "${redirectPath ? redirectPath : '.*'}"

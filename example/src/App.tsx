@@ -1,12 +1,10 @@
 import { Text, View, StyleSheet } from 'react-native';
-import { multiply } from '@wwdrew/react-native-spotify-sdk';
-
-const result = multiply(3, 7);
+import { isAvailable } from '@wwdrew/react-native-spotify-sdk';
 
 export default function App() {
   return (
     <View style={styles.container}>
-      <Text>Result: {result}</Text>
+      <Text>Spotify Installed: {isAvailable() ? 'Yes' : 'No'}</Text>
     </View>
   );
 }

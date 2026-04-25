@@ -1,5 +1,28 @@
-import ReactNativeSpotifySdk from './NativeReactNativeSpotifySdk';
+import ReactNativeSpotifySdk, {
+  type SpotifyScope,
+  type SpotifySession,
+} from './NativeReactNativeSpotifySdk';
 
-export function multiply(a: number, b: number): number {
-  return ReactNativeSpotifySdk.multiply(a, b);
+export interface AuthenticateConfig {
+  scopes: Array<SpotifyScope>;
+  tokenSwapURL?: string;
+  tokenRefreshURL?: string;
+}
+
+export function isAvailable(): boolean {
+  return ReactNativeSpotifySdk.isAvailable();
+}
+
+export async function authenticateAsync(
+  config: AuthenticateConfig
+): Promise<SpotifySession> {
+  if (!config.scopes?.length) {
+    throw new Error('scopes are required');
+  }
+
+  return ReactNativeSpotifySdk.authenticate(
+    config.scopes,
+    config.tokenSwapURL ?? null,
+    config.tokenRefreshURL ?? null
+  );
 }
