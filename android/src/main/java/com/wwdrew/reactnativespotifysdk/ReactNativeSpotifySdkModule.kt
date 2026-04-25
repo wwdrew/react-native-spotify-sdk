@@ -11,6 +11,11 @@ import com.spotify.sdk.android.auth.AuthorizationClient
 import com.spotify.sdk.android.auth.AuthorizationRequest
 import com.spotify.sdk.android.auth.AuthorizationResponse
 import com.spotify.sdk.android.auth.app.SpotifyNativeAuthUtil
+import com.spotify.android.appremote.api.ConnectionParams
+import com.spotify.android.appremote.api.Connector
+import com.spotify.android.appremote.api.SpotifyAppRemote
+import com.spotify.protocol.types.PlayerState
+import com.spotify.protocol.types.Repeat
 import okhttp3.Call
 import okhttp3.Callback
 import okhttp3.FormBody
@@ -19,6 +24,7 @@ import okhttp3.Request
 import okhttp3.Response
 import org.json.JSONObject
 import java.io.IOException
+import com.facebook.react.bridge.ReadableMap
 
 class ReactNativeSpotifySdkModule(reactContext: ReactApplicationContext) :
   NativeReactNativeSpotifySdkSpec(reactContext) {
@@ -27,6 +33,7 @@ class ReactNativeSpotifySdkModule(reactContext: ReactApplicationContext) :
   private val httpClient = OkHttpClient()
   private var authPromise: Promise? = null
   private var authScopes: List<String> = emptyList()
+  private var appRemote: SpotifyAppRemote? = null
 
   private val activityEventListener =
     object : ActivityEventListener {
@@ -98,7 +105,7 @@ class ReactNativeSpotifySdkModule(reactContext: ReactApplicationContext) :
     reactApplicationContext.removeActivityEventListener(activityEventListener)
   }
 
-  override fun isAvailable(): Boolean {
+  override fun isSpotifyAppInstalled(): Boolean {
     return SpotifyNativeAuthUtil.isSpotifyInstalled(reactApplicationContext)
   }
 
@@ -227,6 +234,237 @@ class ReactNativeSpotifySdkModule(reactContext: ReactApplicationContext) :
         }
       }
     )
+  }
+
+  override fun connect(options: ReadableMap, promise: Promise) {
+    val metadata = readSpotifyMetadata(promise) ?: return
+    val accessToken = options.getString("accessToken")
+    if (accessToken.isNullOrBlank()) {
+      promise.reject("ERR_REACT_NATIVE_SPOTIFY_SDK", "connect requires accessToken")
+      return
+    }
+
+    if (appRemote?.isConnected == true) {
+      promise.resolve(null)
+      return
+    }
+
+    val currentActivity = currentActivity
+    if (currentActivity == null) {
+      promise.reject("ERR_REACT_NATIVE_SPOTIFY_SDK", "Activity doesn't exist while trying to connect.")
+      return
+    }
+
+    val connectionParams =
+      ConnectionParams.Builder(metadata.clientId)
+        .setRedirectUri(metadata.redirectUri)
+        .setAccessToken(accessToken)
+        .showAuthView(true)
+        .build()
+
+    SpotifyAppRemote.connect(
+      reactApplicationContext,
+      connectionParams,
+      object : Connector.ConnectionListener {
+        override fun onConnected(spotifyAppRemote: SpotifyAppRemote) {
+          appRemote = spotifyAppRemote
+          val initialContextUri = options.getString("initialContextUri")
+          if (!initialContextUri.isNullOrBlank()) {
+            spotifyAppRemote.playerApi.play(initialContextUri)
+          }
+          promise.resolve(null)
+        }
+
+        override fun onFailure(error: Throwable) {
+          promise.reject(
+            "ERR_REACT_NATIVE_SPOTIFY_SDK",
+            error.message ?: "Failed to connect to Spotify App Remote.",
+            error
+          )
+        }
+      }
+    )
+  }
+
+  override fun disconnect(promise: Promise) {
+    val remote = appRemote
+    if (remote != null) {
+      SpotifyAppRemote.disconnect(remote)
+      appRemote = null
+    }
+    promise.resolve(null)
+  }
+
+  override fun isConnected(promise: Promise) {
+    promise.resolve(appRemote?.isConnected == true)
+  }
+
+  override fun play(options: ReadableMap, promise: Promise) {
+    withPlayerApi(promise) { remote ->
+      val uri = options.getString("uri")
+      if (uri.isNullOrBlank()) {
+        promise.reject("ERR_REACT_NATIVE_SPOTIFY_SDK", "play requires uri")
+        return@withPlayerApi
+      }
+
+      remote.playerApi
+        .play(uri)
+        .setResultCallback {
+          val positionMs =
+            if (options.hasKey("positionMs")) options.getDouble("positionMs").toLong() else 0L
+          if (positionMs > 0L) {
+            remote.playerApi
+              .seekTo(positionMs)
+              .setResultCallback { promise.resolve(null) }
+              .setErrorCallback { error ->
+                promise.reject("ERR_REACT_NATIVE_SPOTIFY_SDK", error.message, error)
+              }
+          } else {
+            promise.resolve(null)
+          }
+        }
+        .setErrorCallback { error ->
+          promise.reject("ERR_REACT_NATIVE_SPOTIFY_SDK", error.message, error)
+        }
+    }
+  }
+
+  override fun pause(promise: Promise) {
+    withPlayerApi(promise) { remote ->
+      remote.playerApi.pause().setResultCallback { promise.resolve(null) }.setErrorCallback { error ->
+        promise.reject("ERR_REACT_NATIVE_SPOTIFY_SDK", error.message, error)
+      }
+    }
+  }
+
+  override fun resume(promise: Promise) {
+    withPlayerApi(promise) { remote ->
+      remote.playerApi.resume().setResultCallback { promise.resolve(null) }.setErrorCallback { error ->
+        promise.reject("ERR_REACT_NATIVE_SPOTIFY_SDK", error.message, error)
+      }
+    }
+  }
+
+  override fun skipNext(promise: Promise) {
+    withPlayerApi(promise) { remote ->
+      remote.playerApi.skipNext().setResultCallback { promise.resolve(null) }.setErrorCallback { error ->
+        promise.reject("ERR_REACT_NATIVE_SPOTIFY_SDK", error.message, error)
+      }
+    }
+  }
+
+  override fun skipPrevious(promise: Promise) {
+    withPlayerApi(promise) { remote ->
+      remote.playerApi.skipPrevious().setResultCallback { promise.resolve(null) }
+        .setErrorCallback { error ->
+          promise.reject("ERR_REACT_NATIVE_SPOTIFY_SDK", error.message, error)
+        }
+    }
+  }
+
+  override fun seekTo(positionMs: Double, promise: Promise) {
+    withPlayerApi(promise) { remote ->
+      remote.playerApi.seekTo(positionMs.toLong()).setResultCallback { promise.resolve(null) }
+        .setErrorCallback { error ->
+          promise.reject("ERR_REACT_NATIVE_SPOTIFY_SDK", error.message, error)
+        }
+    }
+  }
+
+  override fun setShuffle(enabled: Boolean, promise: Promise) {
+    withPlayerApi(promise) { remote ->
+      remote.playerApi.setShuffle(enabled).setResultCallback { promise.resolve(null) }
+        .setErrorCallback { error ->
+          promise.reject("ERR_REACT_NATIVE_SPOTIFY_SDK", error.message, error)
+        }
+    }
+  }
+
+  override fun setRepeatMode(mode: String, promise: Promise) {
+    withPlayerApi(promise) { remote ->
+      val repeatMode =
+        when (mode) {
+          "track" -> Repeat.TRACK
+          "context" -> Repeat.CONTEXT
+          else -> Repeat.OFF
+        }
+      remote.playerApi.setRepeat(repeatMode).setResultCallback { promise.resolve(null) }
+        .setErrorCallback { error ->
+          promise.reject("ERR_REACT_NATIVE_SPOTIFY_SDK", error.message, error)
+        }
+    }
+  }
+
+  override fun getPlayerState(promise: Promise) {
+    withPlayerApi(promise) { remote ->
+      remote.playerApi.playerState.setResultCallback { state ->
+        promise.resolve(serializePlayerState(state))
+      }.setErrorCallback { error ->
+        promise.reject("ERR_REACT_NATIVE_SPOTIFY_SDK", error.message, error)
+      }
+    }
+  }
+
+  private fun withPlayerApi(promise: Promise, block: (SpotifyAppRemote) -> Unit) {
+    val remote = appRemote
+    if (remote == null || !remote.isConnected) {
+      promise.reject("ERR_REACT_NATIVE_SPOTIFY_SDK", "Not connected to Spotify App Remote.")
+      return
+    }
+    block(remote)
+  }
+
+  private fun serializePlayerState(state: PlayerState): Map<String, Any?> {
+    val repeatMode =
+      when (state.playbackOptions.repeatMode) {
+        Repeat.TRACK -> "track"
+        Repeat.CONTEXT -> "context"
+        else -> "off"
+      }
+
+    return mapOf(
+      "trackUri" to state.track.uri,
+      "trackName" to state.track.name,
+      "artistName" to state.track.artist.name,
+      "albumName" to state.track.album.name,
+      "durationMs" to state.track.duration.toDouble(),
+      "positionMs" to state.playbackPosition.toDouble(),
+      "isPaused" to state.isPaused,
+      "shuffle" to state.playbackOptions.isShuffling,
+      "repeatMode" to repeatMode,
+      "contextUri" to state.playbackOptions.playbackContextUri
+    )
+  }
+
+  private data class SpotifyMetadata(val clientId: String, val redirectUri: String)
+
+  private fun readSpotifyMetadata(promise: Promise): SpotifyMetadata? {
+    val appInfo =
+      try {
+        reactApplicationContext.packageManager.getApplicationInfo(
+          reactApplicationContext.packageName,
+          PackageManager.GET_META_DATA
+        )
+      } catch (error: PackageManager.NameNotFoundException) {
+        promise.reject(
+          "ERR_REACT_NATIVE_SPOTIFY_SDK",
+          "Unable to read AndroidManifest metadata for Spotify config.",
+          error
+        )
+        return null
+      }
+
+    val metadata = appInfo.metaData
+    val clientId = metadata?.getString("spotifyClientId")
+    val redirectUri = metadata?.getString("spotifyRedirectUri")
+    if (clientId.isNullOrBlank() || redirectUri.isNullOrBlank()) {
+      promise.reject(
+        "ERR_REACT_NATIVE_SPOTIFY_SDK",
+        "Missing Spotify metadata. Ensure spotifyClientId and spotifyRedirectUri are configured."
+      )
+      return null
+    }
+    return SpotifyMetadata(clientId, redirectUri)
   }
 
   companion object {

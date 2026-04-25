@@ -1,10 +1,10 @@
 import { Text, View, StyleSheet } from 'react-native';
-import { isAvailable } from '@wwdrew/react-native-spotify-sdk';
+import { isSpotifyAppInstalled } from '@wwdrew/react-native-spotify-sdk';
 
 export default function App() {
   return (
     <View style={styles.container}>
-      <Text>Spotify Installed: {isAvailable() ? 'Yes' : 'No'}</Text>
+      <Text>Spotify Installed: {isSpotifyAppInstalled() ? 'Yes' : 'No'}</Text>
     </View>
   );
 }
